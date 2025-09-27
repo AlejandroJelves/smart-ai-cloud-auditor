@@ -2,8 +2,11 @@
 import os
 import datetime as dt
 from typing import List, Dict, Any
-
 from google.cloud import bigquery, monitoring_v3, firestore, recommender_v1
+from dotenv import load_dotenv
+
+# --- ENV ---
+load_dotenv()  # ✅ load from .env automatically
 
 # --- ENV ---
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")  # <-- correct name

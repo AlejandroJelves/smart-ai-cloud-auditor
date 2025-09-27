@@ -1,43 +1,38 @@
 <!DOCTYPE html>
-
 <html>
 <head>
   <title>CloudLens AI Dashboard</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { background-color: #f8f9fa; font-family: monospace; }
-    .sidebar { width:220px; min-height:100vh; background:#212529; color:white; position:fixed; top:0; left:0; padding:20px; font-family: monospace; }
+    body { background-color: #d8d8d8; font-family: monospace; }
+    .sidebar { width:220px; min-height:100vh; background:#212529; color:white; position:fixed; top:0; left:0; padding:20px; }
     .sidebar h4 { text-align:center; margin-bottom:30px; }
     .sidebar a { display:block; padding:10px; margin-bottom:15px; color:white; text-decoration:none; border-radius:5px; }
     .sidebar a:hover { background:#343a40; }
-    .content { margin-left:240px; padding:20px; font-family: monospace; }
+    .content { margin-left:240px; padding:20px; }
 
+    /* KPI Cards */
+    .card h6 { font-size: 0.85rem; }
+    .card h2 { font-size: 1.5rem; }
 
-/* KPI Cards */
-.card h6 { font-size: 0.85rem; font-family: monospace; }
-.card h2 { font-size: 1.5rem; font-family: monospace; }
+    /* Chat bubble */
+    #chatBubble { position:fixed; bottom:20px; right:20px; background:#000000; color:white; border-radius:50%; width:60px; height:60px;
+      display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:1000; }
+    #chatWindow { position:fixed; bottom:90px; right:20px; width:320px; height:420px; background:white; border:1px solid #ccc; border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3); display:none; flex-direction:column; z-index:1000; }
+    #chatHeader { background:#0d6efd; color:white; padding:10px; border-radius:10px 10px 0 0; }
+    #chatBox { flex:1; overflow-y:auto; padding:10px; font-size:14px; background:#f8f9fa; }
+    .user-msg { text-align:right; background:#e9f5ff; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
+    .bot-msg { text-align:left; background:#e6f4ea; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
 
-/* Chat bubble */
-#chatBubble { position:fixed; bottom:20px; right:20px; background:#0d6efd; color:white; border-radius:50%; width:60px; height:60px;
-  display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:1000; }
-#chatWindow { position:fixed; bottom:90px; right:20px; width:320px; height:420px; background:white; border:1px solid #ccc; border-radius:10px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.3); display:none; flex-direction:column; z-index:1000; font-family: monospace; }
-#chatHeader { background:#0d6efd; color:white; padding:10px; border-radius:10px 10px 0 0; font-family: monospace; }
-#chatBox { flex:1; overflow-y:auto; padding:10px; font-size:14px; background:#f8f9fa; font-family: monospace; }
-.user-msg { text-align:right; background:#e9f5ff; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; font-family: monospace; }
-.bot-msg { text-align:left; background:#e6f4ea; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; font-family: monospace; }
-
-/* Charts smaller */
-canvas { max-height: 250px !important; }
-
-
+    /* Charts smaller */
+    canvas { max-height: 250px !important; }
   </style>
 </head>
 <body>
 
 <!-- Sidebar -->
-
 <div class="sidebar">
   <h4>☁️ CloudLens</h4>
   <a href="#" onclick="showView('overview')">Overview</a>
@@ -47,16 +42,11 @@ canvas { max-height: 250px !important; }
 </div>
 
 <!-- Main Content -->
-
 <div class="content">
 
 <!-- Overview -->
-
 <div id="overview" class="view">
   <h3>Overview</h3>
-
-  <!-- KPI Tiles -->
-
   <div class="row text-center mt-3">
     <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="totalSpend">$0</h2></div></div>
     <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Google Cloud</h6><h2 id="gcpSpend">$0</h2></div></div>
@@ -64,38 +54,29 @@ canvas { max-height: 250px !important; }
     <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Azure</h6><h2 id="azureSpend">$0</h2></div></div>
   </div>
 
-  <!-- Charts -->
-
   <div class="row mt-4">
-    <!-- Pie Chart -->
     <div class="col-md-6">
       <div class="card p-3 shadow-sm">
         <h6>Spend by Provider</h6>
         <canvas id="providerPie"></canvas>
       </div>
     </div>
-
-
-<!-- Line Chart with selector at bottom -->
-<div class="col-md-6">
-  <div class="card p-3 shadow-sm">
-    <h6>Daily Cost Trend</h6>
-    <canvas id="trendChart"></canvas>
-    <div class="d-flex justify-content-end mt-2">
-      <select id="overviewRange" class="form-select form-select-sm" style="width:150px;" onchange="updateOverviewChart()">
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-        <option value="90">Last 90 days</option>
-        <option value="90">Last 6  months</option>
-        <option value="90">Last Year</option>
-      </select>
+    <div class="col-md-6">
+      <div class="card p-3 shadow-sm">
+        <h6>Daily Cost Trend</h6>
+        <canvas id="trendChart"></canvas>
+        <div class="d-flex justify-content-end mt-2">
+          <select id="overviewRange" class="form-select form-select-sm" style="width:150px;" onchange="updateOverviewChart()">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="180">Last 6 months</option>
+            <option value="365">Last Year</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-
-  </div>
-
-  <!-- AI Summary Card -->
 
   <div class="card p-3 shadow-sm mt-4">
     <h6>🤖 Quick AI Summary</h6>
@@ -103,49 +84,75 @@ canvas { max-height: 250px !important; }
   </div>
 </div>
 
-  <!-- GCP -->
-
-  <div id="gcp" class="view" style="display:none;">
-    <h3>Google Cloud Details</h3>
-    <div class="row text-center mt-3">
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="gcpTotal">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="gcpAvg">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="gcpBudget">-</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="gcpIdle">0</h2></div></div>
-    </div>
-    <div class="row mt-4"><div class="col-md-12"><canvas id="gcpLine"></canvas></div></div>
+<!-- GCP -->
+<div id="gcp" class="view" style="display:none;">
+  <h3>Google Cloud Details</h3>
+  <!-- KPIs -->
+  <div class="row text-center mt-3">
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="gcpTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="gcpAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="gcpBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="gcpIdle">0</h2></div></div>
   </div>
-
-  <!-- AWS -->
-
-  <div id="aws" class="view" style="display:none;">
-    <h3>AWS Details</h3>
-    <div class="row text-center mt-3">
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="awsTotal">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="awsAvg">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="awsBudget">-</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="awsIdle">0</h2></div></div>
-    </div>
-    <div class="row mt-4"><div class="col-md-12"><canvas id="awsLine"></canvas></div></div>
+  <!-- Metrics -->
+  <div class="row text-center mt-3">
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="gcpCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="gcpTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="gcpDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="gcpLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="gcpRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="gcpLatency">-</h2></div></div>
   </div>
+  <div class="row mt-4"><div class="col-md-12"><canvas id="gcpLine"></canvas></div></div>
+</div>
 
-  <!-- Azure -->
-
-  <div id="azure" class="view" style="display:none;">
-    <h3>Azure Details</h3>
-    <div class="row text-center mt-3">
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="azureTotal">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="azureAvg">$0</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="azureBudget">-</h2></div></div>
-      <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="azureIdle">0</h2></div></div>
-    </div>
-    <div class="row mt-4"><div class="col-md-12"><canvas id="azureLine"></canvas></div></div>
+<!-- AWS -->
+<div id="aws" class="view" style="display:none;">
+  <h3>AWS Details</h3>
+  <!-- KPIs -->
+  <div class="row text-center mt-3">
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="awsTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="awsAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="awsBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="awsIdle">0</h2></div></div>
   </div>
+  <!-- Metrics -->
+  <div class="row text-center mt-3">
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="awsCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="awsTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="awsDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="awsLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="awsRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="awsLatency">-</h2></div></div>
+  </div>
+  <div class="row mt-4"><div class="col-md-12"><canvas id="awsLine"></canvas></div></div>
+</div>
+
+<!-- Azure -->
+<div id="azure" class="view" style="display:none;">
+  <h3>Azure Details</h3>
+  <!-- KPIs -->
+  <div class="row text-center mt-3">
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="azureTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="azureAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="azureBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="azureIdle">0</h2></div></div>
+  </div>
+  <!-- Metrics -->
+  <div class="row text-center mt-3">
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="azureCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="azureTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="azureDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="azureLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="azureRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="azureLatency">-</h2></div></div>
+  </div>
+  <div class="row mt-4"><div class="col-md-12"><canvas id="azureLine"></canvas></div></div>
+</div>
 </div>
 
 <!-- Floating Chat -->
-
-<div id="chatBubble">💬</div>
+<div id="chatBubble">𖦹</div>
 <div id="chatWindow">
   <div id="chatHeader">CloudLens Assistant</div>
   <div id="chatBox"></div>
@@ -156,19 +163,17 @@ canvas { max-height: 250px !important; }
 </div>
 
 <script>
-// Toggle views
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
   document.getElementById(viewId).style.display = 'block';
 
-  // When switching views, load provider charts
-  if (viewId === "gcp") updateProviderChart("gcp", "gcpLine");
-  if (viewId === "aws") updateProviderChart("aws", "awsLine");
-  if (viewId === "azure") updateProviderChart("azure", "azureLine");
+  if (viewId === "gcp") loadProviderData("gcp");
+  if (viewId === "aws") loadProviderData("aws");
+  if (viewId === "azure") loadProviderData("azure");
 }
-showView('overview'); // default
+showView('overview');
 
-// Load dummy costs for tiles + pie chart
+// Load overview tiles/pie
 fetch("/api/costs")
   .then(res => res.json())
   .then(data => {
@@ -180,49 +185,37 @@ fetch("/api/costs")
     const gcpTotal=sum(gcp), awsTotal=sum(aws), azureTotal=sum(azure);
     const total=gcpTotal+awsTotal+azureTotal;
 
-    // Overview tiles
     document.getElementById("totalSpend").innerText=`$${total.toFixed(2)}`;
     document.getElementById("gcpSpend").innerText=`$${gcpTotal.toFixed(2)}`;
     document.getElementById("awsSpend").innerText=`$${awsTotal.toFixed(2)}`;
     document.getElementById("azureSpend").innerText=`$${azureTotal.toFixed(2)}`;
 
-    // Pie chart (overview)
     new Chart(document.getElementById("providerPie"), {
       type:"doughnut",
       data:{
         labels:["Google Cloud","AWS","Azure"],
-        datasets:[{
-          data:[gcpTotal,awsTotal,azureTotal],
-          backgroundColor:["#4285F4","#FF9900","#0078D4"]
-        }]
+        datasets:[{data:[gcpTotal,awsTotal,azureTotal],backgroundColor:["#4285F4","#FF9900","#0078D4"]}]
       }
     });
 
-    // ✅ Trigger first load of Overview line chart (7 days default)
+    // Gemini summary
+    fetch("/api/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data })
+    })
+    .then(res => res.json())
+    .then(out => {
+      document.getElementById("overviewSummary").innerText = out.summary;
+    })
+    .catch(err => {
+      document.getElementById("overviewSummary").innerText = "⚠️ Could not load summary.";
+    });
+
     updateOverviewChart();
   });
 
-// Chat toggle
-document.getElementById("chatBubble").addEventListener("click",()=> {
-  const cw=document.getElementById("chatWindow");
-  cw.style.display=(cw.style.display==="none"||cw.style.display==="")?"flex":"none";
-});
-
-// Chat logic
-function sendMessage(){
-  const input=document.getElementById("userInput");
-  const msg=input.value.trim(); if(!msg)return;
-  const chatBox=document.getElementById("chatBox");
-  chatBox.innerHTML+=`<div class="user-msg">👤 ${msg}</div>`;
-  fetch("/api/agent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:msg})})
-  .then(res=>res.json()).then(data=>{
-    chatBox.innerHTML+=`<div class="bot-msg">🤖 ${data.answer}</div>`;
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
-  input.value="";
-}
-
-// ✅ Dynamic Overview Line Chart
+// === Overview chart ===
 let overviewChart;
 function updateOverviewChart() {
   const range = document.getElementById("overviewRange").value;
@@ -230,57 +223,55 @@ function updateOverviewChart() {
   fetch(`/api/costs?range=${range}`)
     .then(res => res.json())
     .then(data => {
+      if (!data.labels || !data.datasets) {
+        console.error("No trend data received:", data);
+        return;
+      }
       if (overviewChart) overviewChart.destroy();
 
       overviewChart = new Chart(document.getElementById("trendChart"), {
         type: "line",
-        data: {
-          labels: data.labels,
-          datasets: data.datasets.map(ds => ({
-            ...ds,
-            tension: 0.2,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6
-          }))
-        },
-        options: { responsive: true }
+        data: { labels: data.labels, datasets: data.datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "top" } },
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45 } },
+            y: { beginAtZero: true }
+          }
+        }
       });
     });
 }
 
-// ✅ Provider-specific charts (GCP, AWS, Azure)
-const providerCharts = {}; // hold chart refs
-
-function updateProviderChart(provider, canvasId) {
-  fetch(`/api/costs?provider=${provider}&range=90`)
+// === Provider detail loaders ===
+function loadProviderData(provider) {
+  fetch(`/api/costs?provider=${provider}&range=30`)
     .then(res => res.json())
     .then(data => {
-      if (providerCharts[provider]) providerCharts[provider].destroy();
+      if (!data.labels || !data.datasets) {
+        console.error("No provider data received:", data);
+        return;
+      }
 
-      // ✅ Update chart
-      providerCharts[provider] = new Chart(document.getElementById(canvasId), {
-        type: "line",
-        data: {
-          labels: data.labels,
-          datasets: data.datasets.map(ds => ({
-            ...ds,
-            tension: 0.2,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6
-          }))
-        },
-        options: { responsive: true }
-      });
-
-      // ✅ Update summary tiles
+      // Update KPI tiles
       if (data.summary) {
         document.getElementById(`${provider}Total`).innerText = `$${data.summary.total.toFixed(2)}`;
         document.getElementById(`${provider}Avg`).innerText = `$${data.summary.avg.toFixed(2)}`;
         document.getElementById(`${provider}Budget`).innerText = data.summary.budgetStatus;
         document.getElementById(`${provider}Idle`).innerText = data.summary.idle;
       }
+
+      // Render chart
+      new Chart(document.getElementById(`${provider}Line`), {
+        type: "line",
+        data: { labels: data.labels, datasets: data.datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
     });
 }
 </script>
