@@ -12,9 +12,16 @@
     .sidebar a:hover { background:#343a40; }
     .content { margin-left:240px; padding:20px; }
 
-    /* KPI Cards */
-    .card h6 { font-size: 0.85rem; }
-    .card h2 { font-size: 1.5rem; }
+    /* Bigger KPI & Metric Cards */
+    .card {
+      padding: 40px !important;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .card h6 { font-size: 1.1rem; margin-bottom: 10px; }
+    .card h2 { font-size: 2.2rem; margin: 0; }
 
     /* Chat bubble */
     #chatBubble { position:fixed; bottom:20px; right:20px; background:#000000; color:white; border-radius:50%; width:60px; height:60px;
@@ -26,7 +33,7 @@
     .user-msg { text-align:right; background:#e9f5ff; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
     .bot-msg { text-align:left; background:#e6f4ea; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
 
-    /* Charts smaller */
+    /* Charts */
     canvas { max-height: 250px !important; }
   </style>
 </head>
@@ -48,21 +55,21 @@
 <div id="overview" class="view">
   <h3>Overview</h3>
   <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="totalSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Google Cloud</h6><h2 id="gcpSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>AWS</h6><h2 id="awsSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Azure</h6><h2 id="azureSpend">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="totalSpend">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Google Cloud</h6><h2 id="gcpSpend">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>AWS</h6><h2 id="awsSpend">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Azure</h6><h2 id="azureSpend">$0</h2></div></div>
   </div>
 
   <div class="row mt-4">
     <div class="col-md-6">
-      <div class="card p-3 shadow-sm">
+      <div class="card shadow-sm">
         <h6>Spend by Provider</h6>
         <canvas id="providerPie"></canvas>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="card p-3 shadow-sm">
+      <div class="card shadow-sm">
         <h6>Daily Cost Trend</h6>
         <canvas id="trendChart"></canvas>
         <div class="d-flex justify-content-end mt-2">
@@ -78,7 +85,7 @@
     </div>
   </div>
 
-  <div class="card p-3 shadow-sm mt-4">
+  <div class="card shadow-sm mt-4">
     <h6>🤖 Quick AI Summary</h6>
     <p id="overviewSummary">Loading insights...</p>
   </div>
@@ -89,19 +96,19 @@
   <h3>Google Cloud Details</h3>
   <!-- KPIs -->
   <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="gcpTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="gcpAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="gcpBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="gcpIdle">0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="gcpTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="gcpAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="gcpBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="gcpIdle">0</h2></div></div>
   </div>
   <!-- Metrics -->
-  <div class="row text-center mt-3">
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="gcpCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="gcpTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="gcpDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="gcpLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="gcpRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="gcpLatency">-</h2></div></div>
+  <div class="row text-center mt-4">
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="gcpCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="gcpTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="gcpDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="gcpLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="gcpRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="gcpLatency">-</h2></div></div>
   </div>
   <div class="row mt-4"><div class="col-md-12"><canvas id="gcpLine"></canvas></div></div>
 </div>
@@ -111,19 +118,19 @@
   <h3>AWS Details</h3>
   <!-- KPIs -->
   <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="awsTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="awsAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="awsBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="awsIdle">0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="awsTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="awsAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="awsBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="awsIdle">0</h2></div></div>
   </div>
   <!-- Metrics -->
-  <div class="row text-center mt-3">
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="awsCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="awsTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="awsDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="awsLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="awsRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="awsLatency">-</h2></div></div>
+  <div class="row text-center mt-4">
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="awsCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="awsTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="awsDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="awsLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="awsRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="awsLatency">-</h2></div></div>
   </div>
   <div class="row mt-4"><div class="col-md-12"><canvas id="awsLine"></canvas></div></div>
 </div>
@@ -133,19 +140,19 @@
   <h3>Azure Details</h3>
   <!-- KPIs -->
   <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Total Spend</h6><h2 id="azureTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Avg Daily Spend</h6><h2 id="azureAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Budget Status</h6><h2 id="azureBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card p-3 shadow-sm"><h6>Idle Resources</h6><h2 id="azureIdle">0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="azureTotal">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="azureAvg">$0</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="azureBudget">-</h2></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="azureIdle">0</h2></div></div>
   </div>
   <!-- Metrics -->
-  <div class="row text-center mt-3">
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="azureCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="azureTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="azureDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="azureLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="azureRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card p-3 shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="azureLatency">-</h2></div></div>
+  <div class="row text-center mt-4">
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="azureCPU">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="azureTraffic">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="azureDisk">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="azureLogs">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="azureRequests">-</h2></div></div>
+    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="azureLatency">-</h2></div></div>
   </div>
   <div class="row mt-4"><div class="col-md-12"><canvas id="azureLine"></canvas></div></div>
 </div>
@@ -194,7 +201,7 @@ fetch("/api/costs")
       type:"doughnut",
       data:{
         labels:["Google Cloud","AWS","Azure"],
-        datasets:[{data:[gcpTotal,awsTotal,azureTotal],backgroundColor:["#4285F4","#FF9900","#0078D4"]}]
+        datasets:[{data:[gcpTotal,awsTotal,azureTotal],backgroundColor:["#EB7C75","#8CABFF","#FF8CB4"]}]
       }
     });
 
