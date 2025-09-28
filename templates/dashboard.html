@@ -281,6 +281,46 @@ function loadProviderData(provider) {
       });
     });
 }
+// === Chatbot UI Logic ===
+
+// Toggle chat window when bubble is clicked
+document.getElementById("chatBubble").addEventListener("click", () => {
+  const chatWindow = document.getElementById("chatWindow");
+  chatWindow.style.display = (chatWindow.style.display === "flex") ? "none" : "flex";
+});
+
+// Send message to backend
+function sendMessage() {
+  const inputEl = document.getElementById("userInput");
+  const chatBox = document.getElementById("chatBox");
+  const userText = inputEl.value.trim();
+
+  if (!userText) return;
+
+  // Add user message
+  chatBox.innerHTML += `<div class="user-msg">${userText}</div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+  inputEl.value = "";
+
+  // Send to Flask backend
+  fetch("/api/agent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: userText })
+  })
+  .then(res => res.json())
+  .then(data => {
+    const botText = data.answer || "⚠️ No response from AI.";
+    chatBox.innerHTML += `<div class="bot-msg">${botText}</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+  })
+  .catch(err => {
+    console.error("Chat error:", err);
+    chatBox.innerHTML += `<div class="bot-msg">⚠️ Error connecting to AI.</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+
 </script>
 </body>
 </html>

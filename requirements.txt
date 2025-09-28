@@ -5,3 +5,4 @@ google-cloud-monitoring
 google-cloud-recommender
 google-cloud-firestore
 google.generativeai
+google-cloud-aiplatform

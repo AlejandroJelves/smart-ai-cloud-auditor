@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 from services import gcp_connector
 from services import gemini
+from vertexai.preview.generative_models import GenerativeModel
 
 import random
 
@@ -143,11 +144,35 @@ def costs():
         ]
     })
 
-# Fake chatbot agent
+# Real Vertex AI chatbot agent
 @app.route("/api/agent", methods=["POST"])
 def agent():
     question = request.json.get("question", "")
-    return jsonify({"answer": f"🤖 (dummy) I received your question: '{question}'"})
+    if not question:
+        return jsonify({"error": "No question provided"}), 400
 
+    try:
+        # Use Vertex AI Gemini model
+        model = GenerativeModel("gemini-2.5-flash")
+
+        # Build prompt (keeps answers short and useful)
+        prompt = (
+            "You are CloudLens AI, a cloud auditor assistant.\n"
+            "Answer user questions using the cost/trend data available.\n"
+            "Respond in at most 5 concise bullet points (≤100 words).\n\n"
+            f"User: {question}\n"
+            "⚠️ Keep the response clear, short, and helpful."
+        )
+
+        response = model.generate_content(prompt)
+        text = response.text.strip() if response and response.text else "⚠️ No response from AI."
+        print("DEBUG: AI Answer ->", text)
+
+        return jsonify({"answer": text})
+
+    except Exception as e:
+        print("DEBUG ERROR in agent:", e)
+        return jsonify({"error": f"⚠️ AI error: {e}"})
+    
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
