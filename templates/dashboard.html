@@ -276,6 +276,23 @@ fetch("/api/costs").then(r => r.json()).then(data => {
   fetch("/api/summary",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})})
     .then(r=>r.json()).then(o => document.getElementById("overviewSummary").innerText = o.summary || "No summary.");
 });
+/* ---- Overview tiles + pie ---- */
+fetch("/api/costs").then(r => r.json()).then(data => {
+  const gcp = data.filter(d => d.provider==="gcp");
+  const aws = data.filter(d => d.provider==="aws");
+  const azure = data.filter(d => d.provider==="azure");
+  const sum = arr => arr.reduce((a,b)=>a+b.cost,0);
+  const gcpTotal=sum(gcp), awsTotal=sum(aws), azureTotal=sum(azure);
+  const total=gcpTotal+awsTotal+azureTotal;
+  document.getElementById("totalSpend").innerText=`$${total.toFixed(2)}`;
+  document.getElementById("gcpSpend").innerText=`$${gcpTotal.toFixed(2)}`;
+  document.getElementById("awsSpend").innerText=`$${awsTotal.toFixed(2)}`;
+  document.getElementById("azureSpend").innerText=`$${azureTotal.toFixed(2)}`;
+  new Chart(document.getElementById("providerPie"), { type:"doughnut", data:{ labels:["GCP","AWS","Azure"], datasets:[{ data:[gcpTotal,awsTotal,azureTotal], backgroundColor:["#EB7C75","#8CABFF","#FF8CB4"]}] }});
+  updateOverviewChart();
+  fetch("/api/summary",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})})
+    .then(r=>r.json()).then(o => document.getElementById("overviewSummary").innerText = o.summary || "No summary.");
+});
 
 /* ---- Overview trend line ---- */
 let trendChart;
@@ -307,12 +324,36 @@ document.getElementById("chatBubble").onclick=()=>{
   const w=document.getElementById("chatWindow"); 
   w.style.display=(w.style.display==="flex") ? "none":"flex"; 
 };
-function sendMessage(){ 
+
+async function sendMessage(){ 
   const input=document.getElementById("userInput"); 
-  const msg=input.value.trim(); if(!msg) return; 
+  const msg=input.value.trim(); 
+  if(!msg) return; 
+
   const box=document.getElementById("chatBox"); 
   box.innerHTML += `<div class="user-msg">${msg}</div>`; 
   input.value=""; 
-  setTimeout(()=>{ box.innerHTML += `<div class="bot-msg">🤖 Got it — "${msg}"</div>`; box.scrollTop=box.scrollHeight; },600); 
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: msg })
+    });
+    const data = await res.json();
+    if (data.response) {
+      box.innerHTML += `<div class="bot-msg">${data.response}</div>`;
+    } else if (data.error) {
+      box.innerHTML += `<div class="bot-msg">⚠️ ${data.error}</div>`;
+    } else {
+      box.innerHTML += `<div class="bot-msg">(no reply)</div>`;
+    }
+  } catch(err){
+    box.innerHTML += `<div class="bot-msg">⚠️ Chat error: ${err.message}</div>`;
+  }
+
+  box.scrollTop = box.scrollHeight;
 }
+
 </script>
