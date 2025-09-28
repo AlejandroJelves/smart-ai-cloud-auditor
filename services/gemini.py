@@ -4,6 +4,8 @@ from typing import List, Dict
 def summarize_costs(rows: List[Dict]) -> str:
     """
     Lightweight summarizer fallback: no external API calls.
+    Then leave a space to continue to give 5-6 summary. Highlight key words.
+    
     """
     if not rows:
         return "No cost data available yet."
