@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 from services import gcp_connector, gcp_live, gemini
-import random
-
+from agent_app import create_cloud_audit_agent
 
 app = Flask(__name__)
+cloud_audit_agent = create_cloud_audit_agent()
 
 # ------------------ pages ------------------
 @app.route("/")
@@ -35,61 +35,49 @@ def costs():
         except Exception:
             gcp_total = 0.0
 
+        # Use same dummy values as agent_app
+        aws_total = 98.75
+        azure_total = 45.30
+
         tiles = [
             {"provider": "gcp",   "service": "Compute Engine", "cost": gcp_total},
-            {"provider": "aws",   "service": "EC2",            "cost": 98.75},     # demo values
-            {"provider": "azure", "service": "VMs",            "cost": 45.30}
+            {"provider": "aws",   "service": "EC2",            "cost": aws_total},
+            {"provider": "azure", "service": "VMs",            "cost": azure_total}
         ]
         return jsonify(tiles)
 
-    # ---- Charts (demo values grouped) ----
+    # ---- Charts (dummy static trend instead of random) ----
     range_days = int(range_days)
     today = datetime.today()
     dates = [today - timedelta(days=i) for i in range(range_days - 1, -1, -1)]
+    labels = [d.strftime("%Y-%m-%d") for d in dates]
 
-    gcp_vals   = [random.randint(20, 90) for _ in dates]
-    aws_vals   = [random.randint(15, 80) for _ in dates]
-    azure_vals = [random.randint(10, 70) for _ in dates]
+    # Live GCP daily trend
+    try:
+        gcp_trend = gcp_connector.get_daily_cost_trend(days=range_days)
+        gcp_labels = [r["day"] for r in gcp_trend]
+        gcp_values = [r["daily_cost"] for r in gcp_trend]
+    except Exception:
+        gcp_labels, gcp_values = labels, [50.0 for _ in labels]
 
-    if range_days <= 30:
-        step = 1
-    elif range_days <= 90:
-        step = 7
-    elif range_days <= 180:
-        step = 15
-    else:
-        step = 30
-
-    grouped_labels, gcp_grouped, aws_grouped, azure_grouped = [], [], [], []
-    for i in range(0, len(dates), step):
-        chunk_dates = dates[i:i+step]
-        if not chunk_dates:
-            continue
-        grouped_labels.append(chunk_dates[0].strftime("%Y-%m-%d"))
-        gcp_grouped.append(sum(gcp_vals[i:i+step]) // len(chunk_dates))
-        aws_grouped.append(sum(aws_vals[i:i+step]) // len(chunk_dates))
-        azure_grouped.append(sum(azure_vals[i:i+step]) // len(chunk_dates))
+    # Dummy AWS & Azure daily trend (flat values)
+    aws_values = [50.0 for _ in labels]
+    azure_values = [30.0 for _ in labels]
 
     if provider:
         if provider == "gcp":
-            try:
-                gcp_trend = gcp_connector.get_daily_cost_trend(days=range_days)
-                labels = [r["day"] for r in gcp_trend]
-                values = [r["daily_cost"] for r in gcp_trend]
-            except Exception:
-                labels, values = grouped_labels, gcp_grouped
-            color, name = "#4285F4", "Google Cloud"
+            labels, values, color, name = gcp_labels, gcp_values, "#4285F4", "Google Cloud"
         elif provider == "aws":
-            labels, values, color, name = grouped_labels, aws_grouped, "#FF9900", "AWS"
+            labels, values, color, name = labels, aws_values, "#FF9900", "AWS"
         elif provider == "azure":
-            labels, values, color, name = grouped_labels, azure_grouped, "#0078D4", "Azure"
+            labels, values, color, name = labels, azure_values, "#0078D4", "Azure"
         else:
             return jsonify({"error": "Invalid provider"}), 400
 
         total = sum(values)
         avg = total / len(values) if values else 0
         budget = 2000
-        idle = random.randint(0, 5)
+        idle = 2  # fixed dummy
 
         return jsonify({
             "labels": labels,
@@ -105,11 +93,11 @@ def costs():
         })
 
     return jsonify({
-        "labels": grouped_labels,
+        "labels": labels,
         "datasets": [
-            {"label": "Provider A", "data": gcp_grouped,   "borderColor": "#4285F4", "fill": False},
-            {"label": "Provider B", "data": aws_grouped,   "borderColor": "#FF9900", "fill": False},
-            {"label": "Provider C", "data": azure_grouped, "borderColor": "#0078D4", "fill": False}
+            {"label": "Google Cloud", "data": gcp_values,   "borderColor": "#4285F4", "fill": False},
+            {"label": "AWS",          "data": aws_values,   "borderColor": "#FF9900", "fill": False},
+            {"label": "Azure",        "data": azure_values, "borderColor": "#0078D4", "fill": False}
         ]
     })
 
@@ -145,6 +133,18 @@ def api_cpu():
             {"id": "gcp-cpu", "provider": "gcp", "label": "CPU %", "data": data["cpu_percent"]}
         ]
     })
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    body = request.json or {}
+    q = (body.get("query") or "").strip()
+    if not q:
+        return jsonify({"error": "Missing query"}), 400
+    try:
+        out = cloud_audit_agent.chat(q)
+        return jsonify({"response": out["text"], "traces": out["calls"]})
+    except Exception as e:
+        return jsonify({"error": f"Chat error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

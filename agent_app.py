@@ -2,14 +2,20 @@
 import os
 import vertexai
 from typing import Any, Dict
-from vertexai.generative_models import GenerativeModel, FunctionDeclaration, Tool
+from vertexai.generative_models import (
+    GenerativeModel,
+    FunctionDeclaration,
+    Tool,
+    Content,
+    Part,
+)
 
 # ---- Import your live connectors from services ----
 from services import gcp_connector, gcp_live
 
 # ----- Vertex init -----
 PROJECT_ID = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION   = os.getenv("GCP_REGION", "us-central1")
+LOCATION = os.getenv("GCP_REGION", "us-central1")
 if not PROJECT_ID:
     raise RuntimeError("GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) must be set")
 vertexai.init(project=PROJECT_ID, location=LOCATION)
@@ -26,25 +32,30 @@ def _get_mtd_costs() -> list[dict[str, Any]]:
         {"project": "azure-demo", "service": "VMs", "mtd_cost": 45.30},
     ]
 
+
 def _get_daily_cost_trend(days: int = 30) -> list[dict[str, Any]]:
     """Return daily costs for GCP (real) + AWS/Azure (dummy)."""
     try:
         gcp = gcp_connector.get_daily_cost_trend(days=days)
     except Exception:
         gcp = []
-    # Dummy AWS & Azure flat series
+    # Dummy AWS & Azure series
     aws = [{"day": d["day"], "daily_cost": 50.0} for d in gcp] if gcp else []
     azure = [{"day": d["day"], "daily_cost": 30.0} for d in gcp] if gcp else []
     return gcp + aws + azure
 
+
 def _tiles_summary() -> dict[str, Any]:
     return gcp_live.tiles_summary()
+
 
 def _cpu_timeseries(minutes: int = 30, step_seconds: int = 60) -> dict[str, Any]:
     return gcp_live.cpu_timeseries(minutes=minutes, step_seconds=step_seconds)
 
+
 def _traffic_timeseries(minutes: int = 30, step_seconds: int = 60) -> dict[str, Any]:
     return gcp_live.traffic_timeseries(minutes=minutes, step_seconds=step_seconds)
+
 
 # ----- Function Declarations (schema the model sees) -----
 fd_get_mtd_costs = FunctionDeclaration(
@@ -95,13 +106,17 @@ fd_traffic_timeseries = FunctionDeclaration(
     },
 )
 
-tools = [Tool(function_declarations=[
-    fd_get_mtd_costs,
-    fd_get_daily_cost_trend,
-    fd_tiles_summary,
-    fd_cpu_timeseries,
-    fd_traffic_timeseries,
-])]
+tools = [
+    Tool(
+        function_declarations=[
+            fd_get_mtd_costs,
+            fd_get_daily_cost_trend,
+            fd_tiles_summary,
+            fd_cpu_timeseries,
+            fd_traffic_timeseries,
+        ]
+    )
+]
 
 SYSTEM_PROMPT = (
     "You are CloudLens AI. Answer questions about cloud spend (GCP live, AWS/Azure dummy) "
@@ -116,16 +131,21 @@ _EXEC_MAP = {
     "get_daily_cost_trend": lambda **kw: _get_daily_cost_trend(int(kw.get("days", 30))),
     "tiles_summary": lambda **kw: _tiles_summary(),
     "cpu_timeseries": lambda **kw: _cpu_timeseries(
-        minutes=int(kw.get("minutes", 30)), step_seconds=int(kw.get("step_seconds", 60))
+        minutes=int(kw.get("minutes", 30)),
+        step_seconds=int(kw.get("step_seconds", 60)),
     ),
     "traffic_timeseries": lambda **kw: _traffic_timeseries(
-        minutes=int(kw.get("minutes", 30)), step_seconds=int(kw.get("step_seconds", 60))
+        minutes=int(kw.get("minutes", 30)),
+        step_seconds=int(kw.get("step_seconds", 60)),
     ),
 }
 
+
 class CloudAuditAgent:
     def __init__(self, model_name: str = "gemini-2.5-pro"):
-        self.model = GenerativeModel(model_name=model_name, system_instruction=SYSTEM_PROMPT)
+        self.model = GenerativeModel(
+            model_name=model_name, system_instruction=SYSTEM_PROMPT
+        )
 
     def chat(self, query: str) -> dict:
         calls: list[Dict[str, Any]] = []
@@ -153,26 +173,31 @@ class CloudAuditAgent:
                     raise ValueError(f"Unknown tool: {name}")
                 result = fn(**args)
                 calls.append({"name": name, "args": args, "ok": True})
-                # send back tool response (dict form, no FunctionResponse)
-                resp = chat.send_message({
-                    "function_response": {
-                        "name": name,
-                        "response": result
-                    }
-                })
+
+                # ✅ Proper tool response (new API)
+                tool_response = Content(
+                    role="function",
+                    parts=[Part.from_function_response(name=name, response=result)],
+                )
+                resp = chat.send_message(tool_response)
+
             except Exception as e:
                 calls.append({"name": name, "args": args, "ok": False, "error": str(e)})
-                resp = chat.send_message({
-                    "function_response": {
-                        "name": name,
-                        "response": {"error": str(e)}
-                    }
-                })
+                error_response = Content(
+                    role="function",
+                    parts=[
+                        Part.from_function_response(
+                            name=name, response={"error": str(e)}
+                        )
+                    ],
+                )
+                resp = chat.send_message(error_response)
 
         # fallback
         parts = getattr(resp.candidates[0].content, "parts", [])
         text = "".join([getattr(p, "text", "") for p in parts])
         return {"text": text.strip() or "(no final text)", "calls": calls}
+
 
 def create_cloud_audit_agent() -> CloudAuditAgent:
     return CloudAuditAgent(model_name=os.getenv("VERTEX_MODEL", "gemini-2.5-pro"))
