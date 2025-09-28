@@ -16,10 +16,26 @@ vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 # ----- Tool functions (Python side) -----
 def _get_mtd_costs() -> list[dict[str, Any]]:
-    return gcp_connector.get_mtd_costs_by_project_service()
+    """Return MTD costs for GCP (real) + AWS/Azure (dummy)."""
+    try:
+        gcp = gcp_connector.get_mtd_costs_by_project_service()
+    except Exception:
+        gcp = []
+    return gcp + [
+        {"project": "aws-demo", "service": "EC2", "mtd_cost": 98.75},
+        {"project": "azure-demo", "service": "VMs", "mtd_cost": 45.30},
+    ]
 
 def _get_daily_cost_trend(days: int = 30) -> list[dict[str, Any]]:
-    return gcp_connector.get_daily_cost_trend(days=days)
+    """Return daily costs for GCP (real) + AWS/Azure (dummy)."""
+    try:
+        gcp = gcp_connector.get_daily_cost_trend(days=days)
+    except Exception:
+        gcp = []
+    # Dummy AWS & Azure flat series
+    aws = [{"day": d["day"], "daily_cost": 50.0} for d in gcp] if gcp else []
+    azure = [{"day": d["day"], "daily_cost": 30.0} for d in gcp] if gcp else []
+    return gcp + aws + azure
 
 def _tiles_summary() -> dict[str, Any]:
     return gcp_live.tiles_summary()
@@ -33,13 +49,13 @@ def _traffic_timeseries(minutes: int = 30, step_seconds: int = 60) -> dict[str, 
 # ----- Function Declarations (schema the model sees) -----
 fd_get_mtd_costs = FunctionDeclaration(
     name="get_mtd_costs",
-    description="Get month-to-date GCP costs grouped by project and service.",
+    description="Get month-to-date cloud costs grouped by project and service (GCP live, AWS/Azure dummy).",
     parameters={"type": "object", "properties": {}},
 )
 
 fd_get_daily_cost_trend = FunctionDeclaration(
     name="get_daily_cost_trend",
-    description="Get daily GCP costs for the last N days.",
+    description="Get daily cloud costs for the last N days (GCP live, AWS/Azure dummy).",
     parameters={
         "type": "object",
         "properties": {"days": {"type": "integer", "minimum": 1, "maximum": 365}},
@@ -88,7 +104,8 @@ tools = [Tool(function_declarations=[
 ])]
 
 SYSTEM_PROMPT = (
-    "You are CloudLens AI. Answer questions about GCP spend and live VM metrics.\n"
+    "You are CloudLens AI. Answer questions about cloud spend (GCP live, AWS/Azure dummy) "
+    "and live GCP VM metrics.\n"
     "- For spend: call get_mtd_costs and/or get_daily_cost_trend.\n"
     "- For live health: call tiles_summary, cpu_timeseries, or traffic_timeseries.\n"
     "Be concise, include numbers, and give 1–2 actionable tips."
