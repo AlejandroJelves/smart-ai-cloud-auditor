@@ -1,31 +1,17 @@
-# services/gemini.py
 import os
-import google.generativeai as genai
+from typing import List, Dict
 
-# Load API key from environment
-API_KEY = os.getenv("GEMINI_API_KEY")
-
-if not API_KEY:
-    raise ValueError("⚠️ No GEMINI_API_KEY found in environment")
-
-genai.configure(api_key=API_KEY)
-
-# MODEL
-MODEL = genai.GenerativeModel("gemini-2.5-flash")
-
-def summarize_costs(data):
+def summarize_costs(rows: List[Dict]) -> str:
     """
-    Summarize cloud cost data into a human-readable insight.
+    Lightweight summarizer fallback: no external API calls.
     """
-    try:
-        text_input = "Here is cloud provider cost data:\n"
-        for item in data:
-            text_input += f"- {item['provider'].upper()}: ${item['cost']}\n"
-
-        text_input += "\nWrite a short business-friendly summary (5–10 sentences)."
-
-        response = MODEL.generate_content(text_input)
-        return response.text.strip() if response and response.text else "No summary generated."
-    except Exception as e:
-        return f"⚠️ Gemini error: {e}"
-        
+    if not rows:
+        return "No cost data available yet."
+    providers = {}
+    for r in rows:
+        prov = r.get("provider", "unknown")
+        providers.setdefault(prov, 0.0)
+        providers[prov] += float(r.get("cost", 0.0))
+    parts = [f"{k.upper()}: ${v:.2f}" for k, v in providers.items()]
+    total = sum(providers.values())
+    return f"Current spend — {' | '.join(parts)}. Total: ${total:.2f}."

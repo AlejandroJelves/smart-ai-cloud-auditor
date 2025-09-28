@@ -1,81 +1,56 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
-from services import gcp_connector
-from services import gemini
-from vertexai.preview.generative_models import GenerativeModel
-
+from services import gcp_connector, gcp_live, gemini
 import random
 
 
 app = Flask(__name__)
 
-# Tile & pie summary data
-dummy_data = [
-    {"provider": "gcp", "service": "Compute Engine", "cost": 120.50},
-    {"provider": "aws", "service": "EC2", "cost": 98.75},
-    {"provider": "azure", "service": "Virtual Machines", "cost": 45.30}
-]
-
-@app.route("/api/gcp/mtd")
-def gcp_mtd():
-    try:
-        data = gcp_connector.get_mtd_costs_by_project_service()
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)})
-    
+# ------------------ pages ------------------
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html")
 
+# ------------------ summaries & costs ------------------
 @app.route("/api/summary", methods=["POST"])
 def summary():
-    body = request.json
+    body = request.json or {}
     data = body.get("data", [])
     try:
-        text = gemini.summarize_costs(data)  # 🔹 ask Gemini to generate a summary
+        text = gemini.summarize_costs(data)
         return jsonify({"summary": text})
     except Exception as e:
         return jsonify({"summary": f"⚠️ Error generating summary: {str(e)}"})
-    
-@app.route("/chat")
-def chat():
-    return render_template("chat.html")
 
 @app.route("/api/costs")
 def costs():
     range_days = request.args.get("range")
     provider = request.args.get("provider")
 
-    # ---- Tiles / Pie (no range selected) ----
+    # ---- Tiles / Pie ----
     if not range_days:
         try:
-            # 🔹 Pull real GCP cost from connector
             gcp_real = gcp_connector.get_mtd_costs_by_project_service()
             gcp_total = sum([r["mtd_cost"] for r in gcp_real])
         except Exception:
-            # 🔹 If connector fails, fall back to dummy
-            gcp_total = 120.50  
+            gcp_total = 0.0
 
-        # 🔹 Build tile data: GCP real, AWS & Azure dummy
-        dummy_data = [
-            {"provider": "gcp", "service": "Compute Engine", "cost": gcp_total},
-            {"provider": "aws", "service": "EC2", "cost": 98.75},
-            {"provider": "azure", "service": "Virtual Machines", "cost": 45.30}
+        tiles = [
+            {"provider": "gcp",   "service": "Compute Engine", "cost": gcp_total},
+            {"provider": "aws",   "service": "EC2",            "cost": 98.75},     # demo values
+            {"provider": "azure", "service": "VMs",            "cost": 45.30}
         ]
-        return jsonify(dummy_data)
+        return jsonify(tiles)
 
-    # ---- Charts (still dummy values, grouped) ----
+    # ---- Charts (demo values grouped) ----
     range_days = int(range_days)
     today = datetime.today()
-    dates = [today - timedelta(days=i) for i in range(range_days-1, -1, -1)]
+    dates = [today - timedelta(days=i) for i in range(range_days - 1, -1, -1)]
 
-    # 🔹 FIX: Generate dummy values before grouping
-    gcp_vals   = [random.randint(40,120) for _ in dates]
-    aws_vals   = [random.randint(30,100) for _ in dates]
-    azure_vals = [random.randint(20,90)  for _ in dates]
+    gcp_vals   = [random.randint(20, 90) for _ in dates]
+    aws_vals   = [random.randint(15, 80) for _ in dates]
+    azure_vals = [random.randint(10, 70) for _ in dates]
 
-    # Grouping step (keeps charts clean)
     if range_days <= 30:
         step = 1
     elif range_days <= 90:
@@ -88,27 +63,22 @@ def costs():
     grouped_labels, gcp_grouped, aws_grouped, azure_grouped = [], [], [], []
     for i in range(0, len(dates), step):
         chunk_dates = dates[i:i+step]
-        if not chunk_dates: 
+        if not chunk_dates:
             continue
         grouped_labels.append(chunk_dates[0].strftime("%Y-%m-%d"))
         gcp_grouped.append(sum(gcp_vals[i:i+step]) // len(chunk_dates))
         aws_grouped.append(sum(aws_vals[i:i+step]) // len(chunk_dates))
         azure_grouped.append(sum(azure_vals[i:i+step]) // len(chunk_dates))
 
-    # ✅ Provider-specific stats
     if provider:
         if provider == "gcp":
             try:
-                # 🔹 Real daily cost trend from connector
                 gcp_trend = gcp_connector.get_daily_cost_trend(days=range_days)
                 labels = [r["day"] for r in gcp_trend]
                 values = [r["daily_cost"] for r in gcp_trend]
             except Exception:
-                # 🔹 fallback to dummy if connector fails
-                labels = grouped_labels
-                values = gcp_grouped
+                labels, values = grouped_labels, gcp_grouped
             color, name = "#4285F4", "Google Cloud"
-
         elif provider == "aws":
             labels, values, color, name = grouped_labels, aws_grouped, "#FF9900", "AWS"
         elif provider == "azure":
@@ -118,8 +88,8 @@ def costs():
 
         total = sum(values)
         avg = total / len(values) if values else 0
-        budget = 2000  # dummy budget
-        idle = random.randint(0, 5)  # dummy idle resources
+        budget = 2000
+        idle = random.randint(0, 5)
 
         return jsonify({
             "labels": labels,
@@ -134,45 +104,47 @@ def costs():
             }
         })
 
-    # ✅ Overview: return all providers together
     return jsonify({
         "labels": grouped_labels,
         "datasets": [
-            {"label": "Provider A", "data": gcp_grouped, "borderColor": "#4285F4", "fill": False},
-            {"label": "Provider B", "data": aws_grouped, "borderColor": "#FF9900", "fill": False},
+            {"label": "Provider A", "data": gcp_grouped,   "borderColor": "#4285F4", "fill": False},
+            {"label": "Provider B", "data": aws_grouped,   "borderColor": "#FF9900", "fill": False},
             {"label": "Provider C", "data": azure_grouped, "borderColor": "#0078D4", "fill": False}
         ]
     })
 
-# Real Vertex AI chatbot agent
-@app.route("/api/agent", methods=["POST"])
-def agent():
-    question = request.json.get("question", "")
-    if not question:
-        return jsonify({"error": "No question provided"}), 400
+# ------------------ LIVE METRICS (VM) ------------------
+@app.get("/api/tiles")
+def api_tiles():
+    """Top tiles: cpu %, traffic in/out, disk r/w, error logs."""
+    return jsonify(gcp_live.tiles_summary())
 
-    try:
-        # Use Vertex AI Gemini model
-        model = GenerativeModel("gemini-2.5-flash")
+@app.get("/api/traffic")
+def api_traffic():
+    """
+    VM traffic time-series (Mbps) for last 30 min.
+    """
+    data = gcp_live.traffic_timeseries(minutes=30, step_seconds=60)
+    return jsonify({
+        "labels": data["ts"],
+        "datasets": [
+            {"id": "gcp-in",  "provider": "gcp", "label": "Ingress (Mbps)", "data": data["mbps_in"]},
+            {"id": "gcp-out", "provider": "gcp", "label": "Egress (Mbps)",  "data": data["mbps_out"]}
+        ]
+    })
 
-        # Build prompt (keeps answers short and useful)
-        prompt = (
-            "You are CloudLens AI, a cloud auditor assistant.\n"
-            "Answer user questions using the cost/trend data available.\n"
-            "Respond in at most 5 concise bullet points (≤100 words).\n\n"
-            f"User: {question}\n"
-            "⚠️ Keep the response clear, short, and helpful."
-        )
+@app.get("/api/cpu")
+def api_cpu():
+    """
+    VM CPU % time-series for last 30 min.
+    """
+    data = gcp_live.cpu_timeseries(minutes=30, step_seconds=60)
+    return jsonify({
+        "labels": data["ts"],
+        "datasets": [
+            {"id": "gcp-cpu", "provider": "gcp", "label": "CPU %", "data": data["cpu_percent"]}
+        ]
+    })
 
-        response = model.generate_content(prompt)
-        text = response.text.strip() if response and response.text else "⚠️ No response from AI."
-        print("DEBUG: AI Answer ->", text)
-
-        return jsonify({"answer": text})
-
-    except Exception as e:
-        print("DEBUG ERROR in agent:", e)
-        return jsonify({"error": f"⚠️ AI error: {e}"})
-    
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

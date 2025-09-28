@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>CloudLens AI Dashboard</title>
+  <meta charset="utf-8" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -11,187 +12,159 @@
     .sidebar a { display:block; padding:10px; margin-bottom:15px; color:white; text-decoration:none; border-radius:5px; }
     .sidebar a:hover { background:#343a40; }
     .content { margin-left:240px; padding:20px; }
-
-    /* Bigger KPI & Metric Cards */
-    .card {
-      padding: 40px !important;
-      min-height: 180px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .card h6 { font-size: 1.1rem; margin-bottom: 10px; }
-    .card h2 { font-size: 2.2rem; margin: 0; }
-
-    /* Chat bubble */
-    #chatBubble { position:fixed; bottom:20px; right:20px; background:#000000; color:white; border-radius:50%; width:60px; height:60px;
-      display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.2); z-index:1000; }
-    #chatWindow { position:fixed; bottom:90px; right:20px; width:320px; height:420px; background:white; border:1px solid #ccc; border-radius:10px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.3); display:none; flex-direction:column; z-index:1000; }
-    #chatHeader { background:#0d6efd; color:white; padding:10px; border-radius:10px 10px 0 0; }
-    #chatBox { flex:1; overflow-y:auto; padding:10px; font-size:14px; background:#f8f9fa; }
-    .user-msg { text-align:right; background:#e9f5ff; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
-    .bot-msg { text-align:left; background:#e6f4ea; padding:6px 10px; border-radius:12px; display:inline-block; margin:4px 0; }
-
-    /* Charts */
-    canvas { max-height: 250px !important; }
+    .card { padding: 16px !important; min-height: 145px; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow: hidden; }
+    .metric-title { font-size: 14px; color: #f2f2f2; }
+    .metric-value { font-size: 36px; font-weight:700; line-height:1.1; color:#fff; }
+    .metric-sub { font-size: 14px; color:#ddd; }
+    .metric-fixed { font-variant-numeric: tabular-nums; }
+    canvas { max-height: 270px !important; }
   </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <div class="sidebar">
   <h4>☁️ CloudLens</h4>
   <a href="#" onclick="showView('overview')">Overview</a>
   <a href="#" onclick="showView('gcp')">Google Cloud</a>
-  <a href="#" onclick="showView('aws')">AWS</a>
-  <a href="#" onclick="showView('azure')">Azure</a>
 </div>
 
-<!-- Main Content -->
 <div class="content">
+  <!-- Overview -->
+  <div id="overview" class="view">
+    <h3>Overview</h3>
+    <div class="row text-center mt-3">
+      <div class="col-md-3"><div class="card shadow-sm"><div class="metric-title">Total Spend</div><div class="metric-value metric-fixed" id="totalSpend">$0</div></div></div>
+      <div class="col-md-3"><div class="card shadow-sm"><div class="metric-title">Google Cloud</div><div class="metric-value metric-fixed" id="gcpSpend">$0</div></div></div>
+      <div class="col-md-3"><div class="card shadow-sm"><div class="metric-title">AWS</div><div class="metric-value metric-fixed" id="awsSpend">$0</div></div></div>
+      <div class="col-md-3"><div class="card shadow-sm"><div class="metric-title">Azure</div><div class="metric-value metric-fixed" id="azureSpend">$0</div></div></div>
+    </div>
 
-<!-- Overview -->
-<div id="overview" class="view">
-  <h3>Overview</h3>
-  <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="totalSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Google Cloud</h6><h2 id="gcpSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>AWS</h6><h2 id="awsSpend">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Azure</h6><h2 id="azureSpend">$0</h2></div></div>
-  </div>
-
-  <div class="row mt-4">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <h6>Spend by Provider</h6>
-        <canvas id="providerPie"></canvas>
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="metric-title">Spend by Provider</div>
+          <canvas id="providerPie"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="d-flex justify-content-between w-100">
+            <div class="metric-title">Daily Cost Trend</div>
+            <select id="overviewRange" class="form-select form-select-sm" style="width:150px;" onchange="updateOverviewChart()">
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="180">Last 6 months</option>
+              <option value="365">Last Year</option>
+            </select>
+          </div>
+          <canvas id="trendChart"></canvas>
+        </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <h6>Daily Cost Trend</h6>
-        <canvas id="trendChart"></canvas>
-        <div class="d-flex justify-content-end mt-2">
-          <select id="overviewRange" class="form-select form-select-sm" style="width:150px;" onchange="updateOverviewChart()">
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="180">Last 6 months</option>
-            <option value="365">Last Year</option>
-          </select>
+
+    <div class="card shadow-sm mt-4">
+      <div class="metric-title">🤖 Quick AI Summary</div>
+      <p id="overviewSummary">Loading insights...</p>
+    </div>
+  </div>
+
+  <!-- GCP -->
+  <div id="gcp" class="view" style="display:none;">
+    <h3>Google Cloud: Live Metrics</h3>
+    <div class="row text-center mt-3">
+      <div class="col-md-2">
+        <div class="card shadow-sm" style="background:#555;color:#fff;">
+          <div class="metric-title">CPU Usage</div>
+          <div class="metric-value metric-fixed" id="gcpCPU">-</div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card shadow-sm" style="background:#555;color:#fff;">
+          <div class="metric-title">Traffic</div>
+          <div class="metric-value metric-fixed" id="gcpTraffic">0.00 / 0.00</div>
+          <div class="metric-sub">Mbps (in/out)</div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card shadow-sm" style="background:#555;color:#fff;">
+          <div class="metric-title">Disk (R/W)</div>
+          <div class="metric-value metric-fixed" id="gcpDisk">0.00 / 0.00</div>
+          <div class="metric-sub">MB/s</div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card shadow-sm" style="background:#555;color:#fff;">
+          <div class="metric-title">Error Logs (5m)</div>
+          <div class="metric-value metric-fixed" id="gcpLogs">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="metric-title">Network Traffic (Mbps) — last 30 min</div>
+          <canvas id="trafficLine"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="metric-title">CPU Utilization (%) — last 30 min</div>
+          <canvas id="cpuLine"></canvas>
         </div>
       </div>
     </div>
   </div>
-
-  <div class="card shadow-sm mt-4">
-    <h6>🤖 Quick AI Summary</h6>
-    <p id="overviewSummary">Loading insights...</p>
-  </div>
-</div>
-
-<!-- GCP -->
-<div id="gcp" class="view" style="display:none;">
-  <h3>Google Cloud Details</h3>
-  <!-- KPIs -->
-  <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="gcpTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="gcpAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="gcpBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="gcpIdle">0</h2></div></div>
-  </div>
-  <!-- Metrics -->
-  <div class="row text-center mt-4">
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="gcpCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="gcpTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="gcpDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="gcpLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="gcpRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="gcpLatency">-</h2></div></div>
-  </div>
-  <div class="row mt-4"><div class="col-md-12"><canvas id="gcpLine"></canvas></div></div>
-</div>
-
-<!-- AWS -->
-<div id="aws" class="view" style="display:none;">
-  <h3>AWS Details</h3>
-  <!-- KPIs -->
-  <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="awsTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="awsAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="awsBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="awsIdle">0</h2></div></div>
-  </div>
-  <!-- Metrics -->
-  <div class="row text-center mt-4">
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="awsCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="awsTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="awsDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="awsLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="awsRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="awsLatency">-</h2></div></div>
-  </div>
-  <div class="row mt-4"><div class="col-md-12"><canvas id="awsLine"></canvas></div></div>
-</div>
-
-<!-- Azure -->
-<div id="azure" class="view" style="display:none;">
-  <h3>Azure Details</h3>
-  <!-- KPIs -->
-  <div class="row text-center mt-3">
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Total Spend</h6><h2 id="azureTotal">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Avg Daily Spend</h6><h2 id="azureAvg">$0</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Budget Status</h6><h2 id="azureBudget">-</h2></div></div>
-    <div class="col-md-3"><div class="card shadow-sm"><h6>Idle Resources</h6><h2 id="azureIdle">0</h2></div></div>
-  </div>
-  <!-- Metrics -->
-  <div class="row text-center mt-4">
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>CPU Usage</h6><h2 id="azureCPU">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Traffic</h6><h2 id="azureTraffic">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Disk</h6><h2 id="azureDisk">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Logs</h6><h2 id="azureLogs">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Requests</h6><h2 id="azureRequests">-</h2></div></div>
-    <div class="col-md-2"><div class="card shadow-sm" style="background:#0000008e; color:white;"><h6>Latency</h6><h2 id="azureLatency">-</h2></div></div>
-  </div>
-  <div class="row mt-4"><div class="col-md-12"><canvas id="azureLine"></canvas></div></div>
-</div>
-</div>
-
-<!-- Floating Chat -->
-<div id="chatBubble">𖦹</div>
-<div id="chatWindow">
-  <div id="chatHeader">CloudLens Assistant</div>
-  <div id="chatBox"></div>
-  <div style="padding:10px; border-top:1px solid #ccc;">
-    <input type="text" id="userInput" class="form-control form-control-sm" placeholder="Ask a question..." />
-    <button class="btn btn-primary btn-sm mt-2 w-100" onclick="sendMessage()">Send</button>
-  </div>
 </div>
 
 <script>
-function showView(viewId) {
-  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-  document.getElementById(viewId).style.display = 'block';
+const PROVIDERS = {
+  gcp:   { name: "Google Cloud", color: "#EB7C75" },
+  aws:   { name: "AWS",          color: "#8CABFF" },
+  azure: { name: "Azure",        color: "#FF8CB4" },
+};
 
-  if (viewId === "gcp") loadProviderData("gcp");
-  if (viewId === "aws") loadProviderData("aws");
-  if (viewId === "azure") loadProviderData("azure");
+function normalizeDatasets(datasets) {
+  const fallback = Object.values(PROVIDERS);
+  return (datasets || []).map((ds, i) => {
+    const key = (ds.id || ds.provider || ds.label || "").toString().toLowerCase().trim();
+    const meta = PROVIDERS[key] || fallback[i % fallback.length];
+    return {
+      ...ds,
+      label: ds.label || meta.name,
+      borderColor: meta.color,
+      backgroundColor: meta.color,
+      pointBackgroundColor: meta.color,
+      pointBorderColor: meta.color,
+      tension: ds.tension ?? 0.25,
+      fill: false
+    };
+  });
+}
+
+// view toggler
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  if (id === "gcp") {
+    refreshTiles();
+    drawTraffic();
+    drawCPU();
+  }
 }
 showView('overview');
 
-// Load overview tiles/pie
+// overview tiles+pie
 fetch("/api/costs")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
     const gcp = data.filter(d => d.provider==="gcp");
     const aws = data.filter(d => d.provider==="aws");
     const azure = data.filter(d => d.provider==="azure");
-
     const sum = arr => arr.reduce((a,b)=>a+b.cost,0);
     const gcpTotal=sum(gcp), awsTotal=sum(aws), azureTotal=sum(azure);
     const total=gcpTotal+awsTotal+azureTotal;
-
     document.getElementById("totalSpend").innerText=`$${total.toFixed(2)}`;
     document.getElementById("gcpSpend").innerText=`$${gcpTotal.toFixed(2)}`;
     document.getElementById("awsSpend").innerText=`$${awsTotal.toFixed(2)}`;
@@ -199,128 +172,71 @@ fetch("/api/costs")
 
     new Chart(document.getElementById("providerPie"), {
       type:"doughnut",
-      data:{
-        labels:["Google Cloud","AWS","Azure"],
-        datasets:[{data:[gcpTotal,awsTotal,azureTotal],backgroundColor:["#EB7C75","#8CABFF","#FF8CB4"]}]
-      }
+      data:{ labels:["GCP","AWS","Azure"], datasets:[{ data:[gcpTotal,awsTotal,azureTotal], backgroundColor:["#EB7C75","#8CABFF","#FF8CB4"]}] }
     });
-
-    // Gemini summary
-    fetch("/api/summary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data })
-    })
-    .then(res => res.json())
-    .then(out => {
-      document.getElementById("overviewSummary").innerText = out.summary;
-    })
-    .catch(err => {
-      document.getElementById("overviewSummary").innerText = "⚠️ Could not load summary.";
-    });
-
     updateOverviewChart();
+    // short summary
+    fetch("/api/summary",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})})
+      .then(r=>r.json()).then(o => document.getElementById("overviewSummary").innerText = o.summary || "No summary.");
   });
 
-// === Overview chart ===
-let overviewChart;
-function updateOverviewChart() {
+// overview trend line
+let trendChart;
+function updateOverviewChart(){
   const range = document.getElementById("overviewRange").value;
-
   fetch(`/api/costs?range=${range}`)
-    .then(res => res.json())
+    .then(r => r.json())
     .then(data => {
-      if (!data.labels || !data.datasets) {
-        console.error("No trend data received:", data);
-        return;
-      }
-      if (overviewChart) overviewChart.destroy();
-
-      overviewChart = new Chart(document.getElementById("trendChart"), {
-        type: "line",
-        data: { labels: data.labels, datasets: data.datasets },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: "top" } },
-          scales: {
-            x: { ticks: { maxRotation: 45, minRotation: 45 } },
-            y: { beginAtZero: true }
-          }
-        }
+      trendChart && trendChart.destroy();
+      const datasets = normalizeDatasets(data.datasets);
+      trendChart = new Chart(document.getElementById("trendChart"), {
+        type:"line",
+        data:{ labels:data.labels, datasets },
+        options:{ responsive:true, scales:{y:{beginAtZero:true}}}
       });
     });
 }
 
-// === Provider detail loaders ===
-function loadProviderData(provider) {
-  fetch(`/api/costs?provider=${provider}&range=30`)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.labels || !data.datasets) {
-        console.error("No provider data received:", data);
-        return;
-      }
-
-      // Update KPI tiles
-      if (data.summary) {
-        document.getElementById(`${provider}Total`).innerText = `$${data.summary.total.toFixed(2)}`;
-        document.getElementById(`${provider}Avg`).innerText = `$${data.summary.avg.toFixed(2)}`;
-        document.getElementById(`${provider}Budget`).innerText = data.summary.budgetStatus;
-        document.getElementById(`${provider}Idle`).innerText = data.summary.idle;
-      }
-
-      // Render chart
-      new Chart(document.getElementById(`${provider}Line`), {
-        type: "line",
-        data: { labels: data.labels, datasets: data.datasets },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
+// Live GCP tiles
+function refreshTiles(){
+  fetch("/api/tiles")
+    .then(r=>r.json())
+    .then(t=>{
+      document.getElementById("gcpCPU").innerText = `${t.cpu_percent.toFixed(1)}%`;
+      document.getElementById("gcpTraffic").innerText = `${(t.traffic.mbps_in || 0).toFixed(2)} / ${(t.traffic.mbps_out||0).toFixed(2)}`;
+      document.getElementById("gcpDisk").innerText = `${(t.disk.read_mbs || 0).toFixed(2)} / ${(t.disk.write_mbs||0).toFixed(2)}`;
+      document.getElementById("gcpLogs").innerText = `${t.errors_5m || 0}`;
     });
 }
-// === Chatbot UI Logic ===
+setInterval(()=>{ if(document.getElementById("gcp").style.display!=="none") refreshTiles(); }, 30000);
 
-// Toggle chat window when bubble is clicked
-document.getElementById("chatBubble").addEventListener("click", () => {
-  const chatWindow = document.getElementById("chatWindow");
-  chatWindow.style.display = (chatWindow.style.display === "flex") ? "none" : "flex";
-});
-
-// Send message to backend
-function sendMessage() {
-  const inputEl = document.getElementById("userInput");
-  const chatBox = document.getElementById("chatBox");
-  const userText = inputEl.value.trim();
-
-  if (!userText) return;
-
-  // Add user message
-  chatBox.innerHTML += `<div class="user-msg">${userText}</div>`;
-  chatBox.scrollTop = chatBox.scrollHeight;
-  inputEl.value = "";
-
-  // Send to Flask backend
-  fetch("/api/agent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question: userText })
-  })
-  .then(res => res.json())
-  .then(data => {
-    const botText = data.answer || "⚠️ No response from AI.";
-    chatBox.innerHTML += `<div class="bot-msg">${botText}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-  })
-  .catch(err => {
-    console.error("Chat error:", err);
-    chatBox.innerHTML += `<div class="bot-msg">⚠️ Error connecting to AI.</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
+// traffic chart
+let trafficChart;
+function drawTraffic(){
+  fetch("/api/traffic").then(r=>r.json()).then(d=>{
+    trafficChart && trafficChart.destroy();
+    const ds = normalizeDatasets(d.datasets);
+    trafficChart = new Chart(document.getElementById("trafficLine"), {
+      type:"line",
+      data: { labels:d.labels, datasets: ds },
+      options:{responsive:true, scales:{y:{beginAtZero:true}}}
+    });
   });
 }
 
+// cpu chart
+let cpuChart;
+function drawCPU(){
+  fetch("/api/cpu").then(r=>r.json()).then(d=>{
+    cpuChart && cpuChart.destroy();
+    const ds = normalizeDatasets(d.datasets);
+    cpuChart = new Chart(document.getElementById("cpuLine"), {
+      type:"line",
+      data: { labels:d.labels, datasets: ds },
+      options:{responsive:true, scales:{y:{beginAtZero:true, max:100}}}
+    });
+  });
+}
 </script>
 </body>
 </html>
